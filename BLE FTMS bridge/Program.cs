@@ -1,4 +1,5 @@
 ﻿
+using BLE_FTMS_bridge.HTTP;
 using BLETestApp.BLE;
 using System;
 using Windows.Devices.Bluetooth;
@@ -8,7 +9,7 @@ using Windows.UI.Notifications;
 class Program
 {
 
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
         BLEScanner scanner = new BLEScanner();
         BLEConnection conn = new BLEConnection(scanner);
