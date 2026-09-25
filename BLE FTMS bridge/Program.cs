@@ -1,5 +1,6 @@
 ﻿
 using BLE_FTMS_bridge.HTTP;
+using BLE_FTMS_bridge.Trainer;
 using BLETestApp.BLE;
 using System;
 using Windows.Devices.Bluetooth;
@@ -11,8 +12,11 @@ class Program
 
     static async Task Main(string[] args)
     {
+        TrainerStatus trainer = new TrainerStatus();
         BLEScanner scanner = new BLEScanner();
-        BLEConnection conn = new BLEConnection(scanner);
+        BLEConnection conn = new BLEConnection(scanner, trainer);
+        HTTPServer httpServer = new HTTPServer(trainer);
+        await httpServer.Start();
         scanner.StartScanning();
         Console.WriteLine("Scanning... press Enter to stop");
         String input = Console.ReadLine();

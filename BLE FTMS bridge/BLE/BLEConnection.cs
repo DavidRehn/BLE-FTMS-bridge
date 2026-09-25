@@ -1,9 +1,10 @@
-﻿using System;
+﻿using BLE_FTMS_bridge.Trainer;
+using BLETestApp.Trainer;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using BLETestApp.Trainer;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
 using Windows.Storage.Streams;
@@ -16,18 +17,17 @@ namespace BLETestApp.BLE
         private BLEScanner scanner;
         private GattDeviceService? ftmsService;
         //private GattDeviceService? cpsService;    // Not finished implementing 
-        private TrainerState trainerState;
-        private TrainerCapabilities trainerCapabilities;
-        BLEParser parser;
+        private BLEParser parser;
+        private TrainerStatus trainer;
+        
 
-        public BLEConnection(BLEScanner scanner)
+        public BLEConnection(BLEScanner scanner, TrainerStatus trainer)
         {
             device = null;
             this.scanner = scanner;
             ftmsService = null;
             //cpsService = null;
-            trainerState = new TrainerState();
-            trainerCapabilities = new TrainerCapabilities();
+            this.trainer = trainer;
             parser = new BLEParser();
         }
 
@@ -43,9 +43,9 @@ namespace BLETestApp.BLE
             }
 
             device.ConnectionStatusChanged += Device_ConnectionStatusChanged;
-            trainerState.IsConnected = device.ConnectionStatus == BluetoothConnectionStatus.Connected;
+            trainer.trainerState.IsConnected = device.ConnectionStatus == BluetoothConnectionStatus.Connected;
 
-            if (trainerState.IsConnected)
+            if (trainer.trainerState.IsConnected)
             {
                 scanner.StopScanning();
             }
@@ -112,8 +112,8 @@ namespace BLETestApp.BLE
         // Called when data from FTMS Indoor Bike Data is received
         private void OnBikeDataReceived(byte[] data)
         {
-            parser.ParseIndoorBikeData(data, trainerState);
-            Console.WriteLine(trainerState.ToString());
+            parser.ParseIndoorBikeData(data, trainer.trainerState);
+            Console.WriteLine(trainer.trainerState.ToString());
         }
 
         public async Task ConnectionSetup()
@@ -124,7 +124,7 @@ namespace BLETestApp.BLE
 
         private void Device_ConnectionStatusChanged(BluetoothLEDevice sender, object args)
         {
-            trainerState.IsConnected = sender.ConnectionStatus == BluetoothConnectionStatus.Connected;
+            trainer.trainerState.IsConnected = sender.ConnectionStatus == BluetoothConnectionStatus.Connected;
         }
     }
 }
