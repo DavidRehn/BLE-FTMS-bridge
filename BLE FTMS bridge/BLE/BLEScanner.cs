@@ -9,37 +9,44 @@ namespace BLETestApp.BLE
 {
     public class BLEScanner
     {
-        private readonly int advTTL = 10; // Time a device remains in list after last advertisement
-        private BluetoothLEAdvertisementWatcher watcher;
-        private List<BLEDevice> connectableDevices;  // Saved advertisements from compatible devices
+        private readonly int advTTL = 10; // Time a device remains in list after last advertisement (seconds)
+        private readonly BluetoothLEAdvertisementWatcher watcher;
+        private readonly object devicesLock = new object();
+        private readonly List<BLEDevice> connectableDevices;  // Saved advertisements from compatible devices
+        private Thread cleanupThread;
 
         public BLEScanner()
         {
             watcher = new BluetoothLEAdvertisementWatcher();
+            watcher.Received += WatcherReceived;
             connectableDevices = new List<BLEDevice>();
+
+            cleanupThread = new Thread(() =>
+            {
+                while (true)
+                {
+                    RemoveOldAdvertisements();
+                    Thread.Sleep(1000);
+                }
+            });
+
+            cleanupThread.IsBackground = true;
+            cleanupThread.Start();
+
+            StartScanning();
         }
 
         public void StartScanning()
         {
-            watcher.Received += (BTAdvWatcher, btAdv) =>
-            { // Executed when advertisement is received
-              // Saves all compatible devices
-                if (HasFTMS(btAdv.Advertisement) /*|| HasCPS(btAdv.Advertisement)*/)
-                {
-                    BLEDevice device = new BLEDevice(btAdv.Advertisement.LocalName, btAdv.BluetoothAddress);
-                    if (connectableDevices.Contains(device)) //Does not take TTL into account
-                    {
-                        connectableDevices.Remove(device);// For updating TTL
-                    }
-                    connectableDevices.Add(device);
-                }
-            };
+            if (watcher.Status == BluetoothLEAdvertisementWatcherStatus.Started)
+                return;
             watcher.Start();
         }
 
         public void StopScanning()
         {
-            watcher.Stop();
+            if (watcher.Status == BluetoothLEAdvertisementWatcherStatus.Started)
+                watcher.Stop();
         }
 
         // Checks if the scanned device has CPS or FTMS services
@@ -59,24 +66,38 @@ namespace BLETestApp.BLE
         // For use in a seperate thread, removes expires devices from saved set
         public void RemoveOldAdvertisements()
         {
-            try
+            lock (devicesLock)
             {
-                foreach (BLEDevice device in connectableDevices)
-                {
-                    if (device.lastAdvertisementTime.AddSeconds(advTTL).CompareTo(DateTime.Now) < 0) // If time since added exceeds TTL
-                    {
-                        connectableDevices.Remove(device);
-                    }
-                }
-            }catch (Exception e)
-            {
-
+                connectableDevices.RemoveAll(device =>
+                    device.lastAdvertisementTime.AddSeconds(advTTL) < DateTime.Now);
             }
         }
 
-        public BLEDevice GetDevice(int i)
+        public List<BLEDevice> GetDevices()
         {
-            return connectableDevices[i];
+            lock (devicesLock)
+            {
+                return new List<BLEDevice>(connectableDevices);
+            }
+        }
+
+
+        private void WatcherReceived(BluetoothLEAdvertisementWatcher sender, BluetoothLEAdvertisementReceivedEventArgs btAdv)
+        {
+            // Executed when advertisement is received
+            // Saves all compatible devices
+            if (HasFTMS(btAdv.Advertisement) /*|| HasCPS(btAdv.Advertisement)*/)
+            {
+                BLEDevice device = new BLEDevice(btAdv.Advertisement.LocalName, btAdv.BluetoothAddress);
+                lock (devicesLock)
+                {
+                    if (connectableDevices.Contains(device)) //Does not take TTL into account
+                    {
+                        connectableDevices.Remove(device);// For updating TTL
+                    }
+                    connectableDevices.Add(device);
+                }
+            }
         }
     }
 }
