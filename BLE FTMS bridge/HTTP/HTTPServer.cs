@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
+
 namespace BLE_FTMS_bridge.HTTP
 {
     public class HTTPServer
@@ -47,6 +48,7 @@ namespace BLE_FTMS_bridge.HTTP
                 {
                     programState.IsRunning = false;
                     await RespondJSON("{\"success\":true}", resp);
+                    return;
                 }
                 // Request for trainer status
                 else if ((req.HttpMethod == "GET") && (req.Url.AbsolutePath == "/trainer_status"))
@@ -90,6 +92,10 @@ namespace BLE_FTMS_bridge.HTTP
                     {
                         await RespondJSON("{\"success\":false,\"error\":\"Invalid address\"}", resp, 400);
                     }
+                }
+                else
+                {
+                    await RespondJSON("{\"success\":false,\"error\":\"Invalid command\"}", resp, 404);  // For commands that doesn't match any of the above
                 }
             }
             httpListener.Stop();

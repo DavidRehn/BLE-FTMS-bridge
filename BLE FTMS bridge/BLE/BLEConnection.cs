@@ -113,6 +113,10 @@ namespace BLETestApp.BLE
         {
             if (!await GetServices())
                 return false;
+
+            if (!await ReadFitnessMachineFeatures(ftmsService!))
+                return false;
+
             return await SubscribeBikeData(ftmsService!, OnBikeDataReceived);
         }
 
@@ -123,6 +127,33 @@ namespace BLETestApp.BLE
                 scanner.StartScanning();
             else
                 scanner.StopScanning();
+        }
+
+        // Reads the FTMS Fitness Machine Feature characteristic
+        private async Task<bool> ReadFitnessMachineFeatures(GattDeviceService ftmsService)
+        {
+            var ftmsFeatureUuid = Guid.Parse("00002ACC-0000-1000-8000-00805f9b34fb");   // Fitness Machine Feature characteristic
+
+            var result = await ftmsService.GetCharacteristicsForUuidAsync(ftmsFeatureUuid);
+
+            if (result.Status != GattCommunicationStatus.Success || result.Characteristics.Count == 0)
+                return false;
+
+            var characteristic = result.Characteristics.First();
+
+            var readResult = await characteristic.ReadValueAsync();
+
+            if (readResult.Status != GattCommunicationStatus.Success)
+                return false;
+
+            var reader = DataReader.FromBuffer(readResult.Value);
+
+            byte[] data = new byte[readResult.Value.Length];
+            reader.ReadBytes(data);
+
+            parser.ParseFitnessMachineFeatures(data, trainer.trainerCapabilities);
+
+            return true;
         }
     }
 }

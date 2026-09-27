@@ -1,6 +1,7 @@
 ﻿using BLETestApp.Trainer;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,6 +14,18 @@ namespace BLETestApp.BLE
     {
         public void ParseIndoorBikeData(byte[] data, TrainerState trainerState)
         {
+            uint machineFeatures = BitConverter.ToUInt32(data, 0);
+            uint targetFeatures = BitConverter.ToUInt32(data, 4);
+
+            Console.WriteLine(
+                $"Raw FTMS Features: {BitConverter.ToString(data)}");
+
+            Console.WriteLine(
+                $"Machine Features: 0x{machineFeatures:X8} ({Convert.ToString(machineFeatures, 2).PadLeft(32, '0')})");
+
+            Console.WriteLine(
+                $"Target Features: 0x{targetFeatures:X8} ({Convert.ToString(targetFeatures, 2).PadLeft(32, '0')})");
+
             double speed = 0;
             double averageSpeed = 0;
 
@@ -171,17 +184,15 @@ namespace BLETestApp.BLE
             }
         }
 
-        public TrainerCapabilities ParseFitnessMachineFeatures(byte[] data)
+        public void ParseFitnessMachineFeatures(byte[] data, TrainerCapabilities trainerCapabilities)
         {
-            TrainerCapabilities caps = new TrainerCapabilities();
-
             // FTMS Fitness Machine Feature characteristic:
             //
             // Bytes 0-3 = Fitness Machine Features (uint32)
             // Bytes 4-7 = Target Setting Features (uint32)
 
             if (data == null || data.Length < 8)
-                return null;
+                return;
 
             uint machineFeatures = BitConverter.ToUInt32(data, 0);
             uint targetFeatures = BitConverter.ToUInt32(data, 4);
@@ -201,37 +212,37 @@ namespace BLETestApp.BLE
             // -------------------------------------------------
             // Speed
             // -------------------------------------------------
-            caps.SupportsSpeed =
+            trainerCapabilities.SupportsSpeed =
                 (machineFeatures & (1u << 0)) != 0;
 
             // -------------------------------------------------
             // Cadence
             // -------------------------------------------------
-            caps.SupportsCadence =
+            trainerCapabilities.SupportsCadence =
                 (machineFeatures & (1u << 1)) != 0;
 
             // -------------------------------------------------
             // Distance
             // -------------------------------------------------
-            caps.SupportsDistance =
+            trainerCapabilities.SupportsDistance =
                 (machineFeatures & (1u << 2)) != 0;
 
             // -------------------------------------------------
             // Inclination
             // -------------------------------------------------
-            caps.SupportsInclination =
+            trainerCapabilities.SupportsInclination =
                 (machineFeatures & (1u << 3)) != 0;
 
             // -------------------------------------------------
             // Heart Rate
             // -------------------------------------------------
-            caps.SupportsHeartRate =
+            trainerCapabilities.SupportsHeartRate =
                 (machineFeatures & (1u << 5)) != 0;
 
             // -------------------------------------------------
             // Power
             // -------------------------------------------------
-            caps.SupportsPower =
+            trainerCapabilities.SupportsPower =
                 (machineFeatures & (1u << 14)) != 0;
 
             /*
@@ -246,22 +257,20 @@ namespace BLETestApp.BLE
             // -------------------------------------------------
             // Resistance Mode
             // -------------------------------------------------
-            caps.SupportsResistance =
+            trainerCapabilities.SupportsResistance =
                 (targetFeatures & (1u << 2)) != 0;
 
             // -------------------------------------------------
             // ERG Mode / Target Power
             // -------------------------------------------------
-            caps.SupportsERG =
+            trainerCapabilities.SupportsERG =
                 (targetFeatures & (1u << 3)) != 0;
 
             // -------------------------------------------------
             // Simulation Mode
             // -------------------------------------------------
-            caps.SupportsSimulation =
+            trainerCapabilities.SupportsSimulation =
                 (targetFeatures & (1u << 5)) != 0;
-
-            return caps;
         }
     }
 }
