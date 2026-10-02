@@ -17,7 +17,6 @@ class Program
         TrainerStatus trainer = new TrainerStatus();
 
         HTTPServer httpServer = new HTTPServer(trainer, programState);
-        Task httpServerTask = httpServer.Start();
-        Console.ReadLine();
+        await httpServer.Start();
     }
 }

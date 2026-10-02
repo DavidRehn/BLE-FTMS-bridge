@@ -37,69 +37,74 @@ namespace BLE_FTMS_bridge.HTTP
         public async Task Start()
         {
             Init();
-            while (programState.IsRunning)
+            try
             {
-                HttpListenerContext ctx = await httpListener.GetContextAsync(); // Contains request and response
-                HttpListenerRequest req = ctx.Request;
-                HttpListenerResponse resp = ctx.Response;
+                while (programState.IsRunning)
+                {
+                    HttpListenerContext ctx = await httpListener.GetContextAsync(); // Contains request and response
+                    HttpListenerRequest req = ctx.Request;
+                    HttpListenerResponse resp = ctx.Response;
 
-                // Shut down the server
-                if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/shutdown"))
-                {
-                    programState.IsRunning = false;
-                    await RespondJSON("{\"success\":true}", resp);
-                    return;
-                }
-                // Request for trainer status
-                else if ((req.HttpMethod == "GET") && (req.Url.AbsolutePath == "/trainer_status"))
-                {
-                    string json = JsonSerializer.Serialize(trainer.trainerState);
-                    await RespondJSON(json, resp);
-                }
-                // Request for trainer capabilities
-                else if ((req.HttpMethod == "GET") && (req.Url.AbsolutePath == "/trainer_capabilities"))
-                {
-                    string json = JsonSerializer.Serialize(trainer.trainerCapabilities);
-                    await RespondJSON(json, resp);
-                }
-                // request for connectable devices
-                else if ((req.HttpMethod == "GET") && (req.Url.AbsolutePath == "/devices"))
-                {
-                    string json = JsonSerializer.Serialize(scanner.GetDevices());
-                    await RespondJSON(json, resp);
-                }
-                else if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/connect"))
-                {
-                    using StreamReader reader = new StreamReader(req.InputStream);
-                    string body = await reader.ReadToEndAsync();                        // received body
-
-                    try
+                    // Shut down the server
+                    if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/shutdown"))
                     {
-                        ConnectRequest? request = JsonSerializer.Deserialize<ConnectRequest>(body);
+                        await RespondJSON("{\"success\":true}", resp);
+                        programState.IsRunning = false;
+                        break;
+                    }
+                    // Request for trainer status
+                    else if ((req.HttpMethod == "GET") && (req.Url.AbsolutePath == "/trainer_status"))
+                    {
+                        string json = JsonSerializer.Serialize(trainer.trainerState);
+                        await RespondJSON(json, resp);
+                    }
+                    // Request for trainer capabilities
+                    else if ((req.HttpMethod == "GET") && (req.Url.AbsolutePath == "/trainer_capabilities"))
+                    {
+                        string json = JsonSerializer.Serialize(trainer.trainerCapabilities);
+                        await RespondJSON(json, resp);
+                    }
+                    // request for connectable devices
+                    else if ((req.HttpMethod == "GET") && (req.Url.AbsolutePath == "/devices"))
+                    {
+                        string json = JsonSerializer.Serialize(scanner.GetDevices());
+                        await RespondJSON(json, resp);
+                    }
+                    else if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/connect"))
+                    {
+                        using StreamReader reader = new StreamReader(req.InputStream);
+                        string body = await reader.ReadToEndAsync();                        // received body
 
-                        if (request == null)
+                        try
                         {
-                            await RespondJSON("{\"success\":false,\"error\":\"Invalid request\"}", resp, 400);
-                            continue;
-                        }
+                            ConnectRequest? request = JsonSerializer.Deserialize<ConnectRequest>(body);
 
-                        bool success = await conn.ConnectDevice(request.Address);
-                        int status = success ? 200 : 400;
-                        body = success ? "{\"success\":true}" : "{\"success\":false}";    // body of response
-                        await RespondJSON(body, resp, status);
+                            if (request == null)
+                            {
+                                await RespondJSON("{\"success\":false,\"error\":\"Invalid request\"}", resp, 400);
+                                continue;
+                            }
+
+                            bool success = await conn.ConnectDevice(request.Address);
+                            int status = success ? 200 : 400;
+                            body = success ? "{\"success\":true}" : "{\"success\":false}";    // body of response
+                            await RespondJSON(body, resp, status);
+                        }
+                        catch (JsonException e)
+                        {
+                            await RespondJSON("{\"success\":false,\"error\":\"Invalid address\"}", resp, 400);
+                        }
                     }
-                    catch (JsonException e)
+                    else
                     {
-                        await RespondJSON("{\"success\":false,\"error\":\"Invalid address\"}", resp, 400);
+                        await RespondJSON("{\"success\":false,\"error\":\"Invalid command\"}", resp, 404);  // For commands that doesn't match any of the above
                     }
-                }
-                else
-                {
-                    await RespondJSON("{\"success\":false,\"error\":\"Invalid command\"}", resp, 404);  // For commands that doesn't match any of the above
                 }
             }
-            httpListener.Stop();
-
+            finally
+            {
+                httpListener.Stop();
+            }
         }
 
         private async Task RespondJSON(string json, HttpListenerResponse response, int statusCode = 200)    // statusCode defaults to 200

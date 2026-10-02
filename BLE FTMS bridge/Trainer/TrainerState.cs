@@ -8,24 +8,21 @@ namespace BLETestApp.Trainer
 {
     public class TrainerState
     {
-        public bool IsConnected { get; set; }
-
+        public bool IsConnected { get; set; } 
         public double SpeedKph { get; set; }    // Instantaneous speed
-        public double AverageSpeedKph { get; set; }
-
+        public double AverageSpeedKph { get; set; } 
         public double CadenceRpm { get; set; }  // Instantaneous cadence
-        public double AverageCadenceRpm { get; set; }   
-
+        public double AverageCadenceRpm { get; set; }
+        public double DistanceKm { get; set; }
+        public double ResistanceLevel { get; set; }
         public int PowerWatts { get; set; }     // Instantaneous power
         public int AveragePowerWatts { get; set; }
-
-        public double DistanceKm { get; set; }
-
-        public int HeartRate { get; set; }
-
-        public double ResistanceLevel { get; set; }
-        
         public int TotalEnergyKcal { get; set; }
+        public int HeartRate { get; set; } 
+        public double MetabolicEquivalent { get; set; }
+        public int ElapsedTimeSeconds { get; set; }
+        public int RemainingTimeSeconds { get; set; }
+
 
 
         public TrainerState()
@@ -41,6 +38,9 @@ namespace BLETestApp.Trainer
             HeartRate = 0;
             ResistanceLevel = 0;
             TotalEnergyKcal = 0;
+            MetabolicEquivalent = 0;
+            ElapsedTimeSeconds = 0;
+            RemainingTimeSeconds = 0;
         }
 
         public TrainerState(bool isConnected, 
