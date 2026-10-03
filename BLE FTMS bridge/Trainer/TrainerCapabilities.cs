@@ -31,12 +31,12 @@ namespace BLETestApp.Trainer
         public bool SupportsResistanceControl { get; set; }
         public bool SupportsPowerControl { get; set; }
         public bool SupportsHeartRateControl { get; set; }
+        public bool SupportsTargetedCadence { get; set; }
 
         // other
         public bool SupportsSimulation { get; set; }
         public bool SupportsWheelCircumference { get; set; }
         public bool SupportsSpinDown { get; set; }
-        public bool SupportsTargetedCadence { get; set; }
 
 
 

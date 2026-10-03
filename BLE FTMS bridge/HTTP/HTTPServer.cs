@@ -64,12 +64,13 @@ namespace BLE_FTMS_bridge.HTTP
                         string json = JsonSerializer.Serialize(trainer.trainerCapabilities);
                         await RespondJSON(json, resp);
                     }
-                    // request for connectable devices
+                    // Request for connectable devices
                     else if ((req.HttpMethod == "GET") && (req.Url.AbsolutePath == "/devices"))
                     {
                         string json = JsonSerializer.Serialize(scanner.GetDevices());
                         await RespondJSON(json, resp);
                     }
+                    // Request for connecting to a ble device, address of the device needs to be in the request body
                     else if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/connect"))
                     {
                         using StreamReader reader = new StreamReader(req.InputStream);
@@ -94,6 +95,38 @@ namespace BLE_FTMS_bridge.HTTP
                         {
                             await RespondJSON("{\"success\":false,\"error\":\"Invalid address\"}", resp, 400);
                         }
+                    }
+                    else if ((req.HttpMethod == "PUT") && (req.Url.AbsolutePath == "/set_target_speed"))
+                    {
+
+                    }
+                    else if ((req.HttpMethod == "PUT") && (req.Url.AbsolutePath == "/set_target_incline"))
+                    {
+
+                    }
+                    else if ((req.HttpMethod == "PUT") && (req.Url.AbsolutePath == "/set_target_resistance"))
+                    {
+
+                    }
+                    else if ((req.HttpMethod == "PUT") && (req.Url.AbsolutePath == "/set_target_power"))
+                    {
+
+                    }
+                    else if ((req.HttpMethod == "PUT") && (req.Url.AbsolutePath == "/set_target_cadence"))
+                    {
+
+                    }
+                    else if ((req.HttpMethod == "PUT") && (req.Url.AbsolutePath == "/set_simulation_parameters"))
+                    {
+
+                    }
+                    else if ((req.HttpMethod == "PUT") && (req.Url.AbsolutePath == "/set_wheel_circumference"))
+                    {
+
+                    }
+                    else if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/spin_down"))
+                    {
+
                     }
                     else
                     {
