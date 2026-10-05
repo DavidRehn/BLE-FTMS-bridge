@@ -43,25 +43,22 @@ namespace BLETestApp.BLE
             watcher.Start();
         }
 
+
         public void StopScanning()
         {
             if (watcher.Status == BluetoothLEAdvertisementWatcherStatus.Started)
                 watcher.Stop();
         }
 
-        // Checks if the scanned device has CPS or FTMS services
+
+        // Checks if the scanned device has FTMS service.
         private static bool HasFTMS(BluetoothLEAdvertisement btAdv)
         {
             var uuids = btAdv.ServiceUuids;
             return uuids.Contains(Guid.Parse("00001826-0000-1000-8000-00805f9b34fb"));  // UUID for FTMS
         }
 
-        // Checks if the scanned device has CPS or FTMS services
-        /*private static bool HasCPS(BluetoothLEAdvertisement btAdv)
-        {
-            var uuids = btAdv.ServiceUuids;
-            return uuids.Contains(Guid.Parse("00001818-0000-1000-8000-00805f9b34fb"));  // UUID for CPS
-        }*/
+
 
         // For use in a seperate thread, removes expires devices from saved set
         public void RemoveOldAdvertisements()
@@ -72,6 +69,7 @@ namespace BLETestApp.BLE
                     device.lastAdvertisementTime.AddSeconds(advTTL) < DateTime.Now);
             }
         }
+
 
         public List<BLEDevice> GetDevices()
         {
@@ -86,7 +84,7 @@ namespace BLETestApp.BLE
         {
             // Executed when advertisement is received
             // Saves all compatible devices
-            if (HasFTMS(btAdv.Advertisement) /*|| HasCPS(btAdv.Advertisement)*/)
+            if (HasFTMS(btAdv.Advertisement))
             {
                 BLEDevice device = new BLEDevice(btAdv.Advertisement.LocalName, btAdv.BluetoothAddress);
                 lock (devicesLock)

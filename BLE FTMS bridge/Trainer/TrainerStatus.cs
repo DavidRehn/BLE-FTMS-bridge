@@ -9,13 +9,6 @@ namespace BLE_FTMS_bridge.Trainer
 {
     public class TrainerStatus
     {
-        public TrainerStatus()
-        {
-            trainerState = new TrainerState();
-            trainerCapabilities = new TrainerCapabilities();
-        }
-
-        public TrainerCapabilities trainerCapabilities { get; set; }
-        public TrainerState trainerState { get; set; }
+        
     }
 }

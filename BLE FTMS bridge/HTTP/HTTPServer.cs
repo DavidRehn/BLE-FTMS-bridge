@@ -17,12 +17,12 @@ namespace BLE_FTMS_bridge.HTTP
         private BLEConnection conn;
 
         private ProgramState programState;
-        private TrainerStatus trainer;  
+        private TrainerDevice trainer;  
 
         private HttpListener httpListener;
         private const string url = "http://localhost:8000/";
 
-        public HTTPServer(TrainerStatus trainer, ProgramState programState)
+        public HTTPServer(TrainerDevice trainer, ProgramState programState)
         {
             this.programState = programState;
             this.trainer = trainer;
@@ -53,7 +53,7 @@ namespace BLE_FTMS_bridge.HTTP
                         break;
                     }
                     // Request for trainer status
-                    else if ((req.HttpMethod == "GET") && (req.Url.AbsolutePath == "/trainer_status"))
+                    else if ((req.HttpMethod == "GET") && (req.Url.AbsolutePath == "/trainer_state"))
                     {
                         string json = JsonSerializer.Serialize(trainer.trainerState);
                         await RespondJSON(json, resp);

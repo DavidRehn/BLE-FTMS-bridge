@@ -16,22 +16,26 @@ namespace BLETestApp.BLE
         private BluetoothLEDevice? device;
         private BLEScanner scanner;
         private GattDeviceService? ftmsService;
-        //private GattDeviceService? cpsService;    // Not finished implementing 
+        private GattCharacteristic? indoorBikeDataCharacteristic;
+        private GattCharacteristic? fitnessMachineStatusCharacteristic;
+        private GattCharacteristic? controlPointCharacteristic;
         private BLEParser parser;
-        private TrainerStatus trainer;
+        private TrainerDevice trainer;
         
 
-        public BLEConnection(BLEScanner scanner, TrainerStatus trainer)
+        public BLEConnection(BLEScanner scanner, TrainerDevice trainer)
         {
             device = null;
             this.scanner = scanner;
             ftmsService = null;
-            //cpsService = null;
             this.trainer = trainer;
             parser = new BLEParser();
         }
 
-        // Connects to a scanned ble device (peripheral) with the given address
+
+        // ----------------------------------------- Connection setup -----------------------------------------
+
+        // Connects to a scanned ble device with the given address
         public async Task<bool> ConnectDevice(ulong address)
         {
             try
@@ -51,7 +55,7 @@ namespace BLETestApp.BLE
             }
         }
 
-        // Gets FTMS and CPS Services if supported by the device, otherwise null (device is incompatible)
+        // Gets FTMS service if supported by the device, otherwise null (device is incompatible)
         private async Task<bool> GetServices()
         {
             var gattServices = await device!.GetGattServicesAsync();
@@ -61,17 +65,38 @@ namespace BLETestApp.BLE
                 return false;
             }
 
-            Guid ftmsUuid = Guid.Parse("00001826-0000-1000-8000-00805f9b34fb"); // FTMS
-            //Guid cpsUuid = Guid.Parse("00001818-0000-1000-8000-00805f9b34fb"); // CPS
-            ftmsService = gattServices.Services.FirstOrDefault(s => s.Uuid == ftmsUuid);
-            //GattDeviceService cpsService = gattServices.Services.FirstOrDefault(s => s.Uuid == cpsUuid);
+            Guid ftmsUuid = Guid.Parse("00001826-0000-1000-8000-00805f9b34fb"); 
+            ftmsService = gattServices.Services.FirstOrDefault(s => s.Uuid == ftmsUuid); 
             return ftmsService != null;
         }
+
+
+        private async Task<bool> ConnectionSetup()
+        {
+            if (!await GetServices())
+                return false;
+
+            if (!await ReadFitnessMachineFeatures(ftmsService!))
+                return false;
+
+            if (!await SubscribeBikeData(ftmsService!, OnBikeDataReceived))
+                return false;
+
+            await SubscribeFitnessMachineStatus(ftmsService!, OnFitnessMachineStatusReceived);  // Status is optional
+
+            return true;
+        }
+
+
+
+
+        // ----------------------------------------- Subscribe to characteristic -----------------------------------------
+
 
         // Subscribes to the FTMS Indoor Bike Data characteristic
         private async Task<bool> SubscribeBikeData(GattDeviceService ftmsService, Action<byte[]> onDataReceived)
         {
-            var ftmsIBDUuid = Guid.Parse("00002AD2-0000-1000-8000-00805f9b34fb");   // FTMS Indoor Bike Data UUID
+            var ftmsIBDUuid = Guid.Parse("00002AD2-0000-1000-8000-00805f9b34fb");
             var result = await ftmsService.GetCharacteristicsForUuidAsync(ftmsIBDUuid);
             if (result.Status != GattCommunicationStatus.Success || result.Characteristics.Count == 0)
             {
@@ -79,15 +104,16 @@ namespace BLETestApp.BLE
                 return false;
             }
 
-            var characteristic = result.Characteristics.First();
+            indoorBikeDataCharacteristic = result.Characteristics.First();
+
             // Check if notifications are supported
-            if (!characteristic.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Notify))
+            if (!indoorBikeDataCharacteristic.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Notify))
             {
                 return false;
             }
 
             // Handle incoming data
-            characteristic.ValueChanged += (sender, args) =>
+            indoorBikeDataCharacteristic.ValueChanged += (sender, args) =>
             {
                 var reader = DataReader.FromBuffer(args.CharacteristicValue);
 
@@ -98,10 +124,48 @@ namespace BLETestApp.BLE
             };
 
             //Subscribe to characteristic
-            var status = await characteristic.WriteClientCharacteristicConfigurationDescriptorAsync(
-                                GattClientCharacteristicConfigurationDescriptorValue.Notify);
+            var status = await indoorBikeDataCharacteristic.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify);
             return status == GattCommunicationStatus.Success;
         }
+
+
+
+        // Subscribes to the FTMS Fitness Machine Status characteristic
+        private async Task<bool> SubscribeFitnessMachineStatus(GattDeviceService ftmsService, Action<byte[]> onStatusReceived)
+        {
+            var ftmsStatusUuid = Guid.Parse("00002ADA-0000-1000-8000-00805f9b34fb"); // Fitness Machine Status UUID
+
+            var result = await ftmsService.GetCharacteristicsForUuidAsync(ftmsStatusUuid);
+
+            if (result.Status != GattCommunicationStatus.Success || result.Characteristics.Count == 0) 
+                return false;       // Fitness Machine Status characteristic not found
+
+            fitnessMachineStatusCharacteristic = result.Characteristics.First();
+
+            // Check if notifications are supported
+            if (!fitnessMachineStatusCharacteristic.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Notify)) 
+                return false;
+
+            // Handle incoming status data
+            fitnessMachineStatusCharacteristic.ValueChanged += (sender, args) =>
+            {
+                var reader = DataReader.FromBuffer(args.CharacteristicValue);
+
+                byte[] data = new byte[args.CharacteristicValue.Length];
+                reader.ReadBytes(data);
+
+                onStatusReceived?.Invoke(data);
+            };
+
+            // Subscribe to characteristic
+            var status = await fitnessMachineStatusCharacteristic.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify);
+
+            return status == GattCommunicationStatus.Success;
+        }
+
+
+        // ----------------------------------------- Handlers for incoming data -----------------------------------------
+
 
         // Called when data from FTMS Indoor Bike Data is received
         private void OnBikeDataReceived(byte[] data)
@@ -109,16 +173,6 @@ namespace BLETestApp.BLE
             parser.ParseIndoorBikeData(data, trainer.trainerState);
         }
 
-        private async Task<bool> ConnectionSetup()
-        {
-            if (!await GetServices())
-                return false;
-
-            if (!await ReadFitnessMachineFeatures(ftmsService!))
-                return false;
-
-            return await SubscribeBikeData(ftmsService!, OnBikeDataReceived);
-        }
 
         private void Device_ConnectionStatusChanged(BluetoothLEDevice sender, object args)
         {
@@ -129,10 +183,18 @@ namespace BLETestApp.BLE
                 scanner.StopScanning();
         }
 
+
+        // Called when Fitness Machine Status data is received
+        private void OnFitnessMachineStatusReceived(byte[] data)
+        {
+            // Parse the FTMS status here
+        }
+
+
         // Reads the FTMS Fitness Machine Feature characteristic
         private async Task<bool> ReadFitnessMachineFeatures(GattDeviceService ftmsService)
         {
-            var ftmsFeatureUuid = Guid.Parse("00002ACC-0000-1000-8000-00805f9b34fb");   // Fitness Machine Feature characteristic
+            var ftmsFeatureUuid = Guid.Parse("00002ACC-0000-1000-8000-00805f9b34fb");
 
             var result = await ftmsService.GetCharacteristicsForUuidAsync(ftmsFeatureUuid);
 
@@ -147,7 +209,6 @@ namespace BLETestApp.BLE
                 return false;
 
             var reader = DataReader.FromBuffer(readResult.Value);
-
             byte[] data = new byte[readResult.Value.Length];
             reader.ReadBytes(data);
 
@@ -155,5 +216,8 @@ namespace BLETestApp.BLE
 
             return true;
         }
+
+
+        
     }
 }
