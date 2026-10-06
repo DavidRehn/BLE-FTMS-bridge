@@ -14,7 +14,7 @@ class Program
     static async Task Main(string[] args)
     {
         ProgramState programState = new ProgramState();
-        TrainerStatus trainer = new TrainerStatus();
+        TrainerDevice trainer = new TrainerDevice();
 
         HTTPServer httpServer = new HTTPServer(trainer, programState);
         await httpServer.Start();
