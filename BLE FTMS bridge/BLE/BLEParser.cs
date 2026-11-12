@@ -1,4 +1,5 @@
-﻿using BLETestApp.Trainer;
+﻿using BLE_FTMS_bridge.Trainer;
+using BLETestApp.Trainer;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -7,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
 using Windows.Storage.Streams;
+using BLE_FTMS_bridge.BLE.Enum;
 
 namespace BLETestApp.BLE
 {
@@ -270,6 +272,295 @@ namespace BLETestApp.BLE
 
             // Targeted Cadence
             trainerCapabilities.SupportsTargetedCadence = (targetFeatures & (1u << 16)) != 0;
+        }
+
+        public void ParseFitnessMachineStatus(byte[] data, TrainerStatus trainerStatus, TrainerConfiguration trainerConfiguration)
+        {
+            if (data == null || data.Length < 1 || trainerStatus == null || trainerConfiguration == null)
+                return;
+
+            int index = 1;
+            byte opcode = data[0];
+            FitnessMachineEvent? parsedEvent = null;
+
+            switch (opcode)
+            {
+                // ----------------------- Reset -----------------------
+
+                case 0x01:
+                    parsedEvent = FitnessMachineEvent.Reset;
+                    trainerStatus.IsRunning = false;
+                    trainerStatus.IsPaused = false;
+                    break;
+
+                // ----------------------- Stopped / Paused by User -----------------------
+
+                case 0x02:
+                    {
+                        if (!HasBytes(data, index, 1))
+                            return;
+
+                        byte controlInformation = data[index++];
+
+                        if (controlInformation == 0x01) // Stop
+                        {
+                            parsedEvent = FitnessMachineEvent.StoppedOrPausedByUser;
+
+                            trainerStatus.IsRunning = false;
+                            trainerStatus.IsPaused = false;
+                        }
+                        else if (controlInformation == 0x02) // Pause
+                        {
+                            parsedEvent = FitnessMachineEvent.StoppedOrPausedByUser;
+
+                            trainerStatus.IsRunning = false;
+                            trainerStatus.IsPaused = true;
+                        }
+                        else
+                        {
+                            return;
+                        }
+
+                        break;
+                    }
+
+                // ----------------------- Stopped by Safety Key -----------------------
+
+                case 0x03:
+                    parsedEvent = FitnessMachineEvent.StoppedBySafetyKey;
+                    trainerStatus.IsRunning = false;
+                    trainerStatus.IsPaused = false;
+                    break;
+
+                // ----------------------- Started / Resumed by User -----------------------
+
+                case 0x04:
+                    parsedEvent = FitnessMachineEvent.StartedOrResumedByUser;
+                    trainerStatus.IsRunning = true;
+                    trainerStatus.IsPaused = false;
+                    break;
+
+                // ----------------------- Target Speed Changed -----------------------
+
+                case 0x05:
+                    {
+                        if (!HasBytes(data, index, 2))
+                            return;
+
+                        ushort rawSpeed = BitConverter.ToUInt16(data, index);
+
+                        trainerConfiguration.TargetSpeedKph = rawSpeed / 100.0;
+
+                        parsedEvent = FitnessMachineEvent.TargetSpeedChanged;
+                        break;
+                    }
+
+                // ----------------------- Target Inclination Changed -----------------------
+
+                case 0x06:
+                    {
+                        if (!HasBytes(data, index, 2))
+                            return;
+
+                        short rawInclination = BitConverter.ToInt16(data, index);
+
+                        trainerConfiguration.TargetInclination = rawInclination / 10.0;
+
+                        parsedEvent = FitnessMachineEvent.TargetInclinationChanged;
+                        break;
+                    }
+
+                // ----------------------- Target Resistance Changed -----------------------
+
+                case 0x07:
+                    {
+                        if (!HasBytes(data, index, 2))
+                            return;
+
+                        short rawResistance = BitConverter.ToInt16(data, index);
+
+                        trainerConfiguration.TargetResistance = rawResistance / 10.0;
+
+                        parsedEvent = FitnessMachineEvent.TargetResistanceChanged;
+                        break;
+                    }
+
+                // ----------------------- Target Power Changed -----------------------
+
+                case 0x08:
+                    {
+                        if (!HasBytes(data, index, 2))
+                            return;
+
+                        short rawPower = BitConverter.ToInt16(data, index);
+
+                        trainerConfiguration.TargetPowerWatts = rawPower;
+
+                        parsedEvent = FitnessMachineEvent.TargetPowerChanged;
+                        break;
+                    }
+
+                // ----------------------- Target Heart Rate Changed -----------------------
+
+                case 0x09:
+                    {
+                        if (!HasBytes(data, index, 1))
+                            return;
+
+                        trainerConfiguration.TargetHeartRate = data[index];
+
+                        parsedEvent = FitnessMachineEvent.TargetHeartRateChanged;
+                        break;
+                    }
+
+                // ----------------------- Target Expended Energy Changed -----------------------
+
+                case 0x0A:
+                    {
+                        if (!HasBytes(data, index, 2))
+                            return;
+
+                        parsedEvent = FitnessMachineEvent.TargetEnergyChanged;
+                        break;
+                    }
+
+                // ----------------------- Targeted Number of Steps Changed -----------------------
+
+                case 0x0B:
+                    {
+                        if (!HasBytes(data, index, 2))
+                            return;
+
+                        parsedEvent = FitnessMachineEvent.TargetStepsChanged;
+                        break;
+                    }
+
+                // ----------------------- Targeted Number of Strides Changed -----------------------
+
+                case 0x0C:
+                    {
+                        if (!HasBytes(data, index, 2))
+                            return;
+
+                        parsedEvent = FitnessMachineEvent.TargetStridesChanged;
+                        break;
+                    }
+
+                // ----------------------- Target Distance Changed -----------------------
+
+                case 0x0D:
+                    {
+                        if (!HasBytes(data, index, 3))
+                            return;
+
+                        parsedEvent = FitnessMachineEvent.TargetDistanceChanged;
+                        break;
+                    }
+
+                // ----------------------- Target Training Time Changed -----------------------
+
+                case 0x0E:
+                    {
+                        if (!HasBytes(data, index, 2))
+                            return;
+
+                        parsedEvent = FitnessMachineEvent.TargetTrainingTimeChanged;
+                        break;
+                    }
+
+                // ----------------------- Target Time in Heart Rate Zones -----------------------
+
+                case 0x0F:
+                case 0x10:
+                case 0x11:
+                    {
+                        int parameterLength = opcode == 0x0F ? 4 : opcode == 0x10 ? 6 : 10;
+
+                        if (!HasBytes(data, index, parameterLength))
+                            return;
+
+                        if (opcode == 0x0F)
+                        {
+                            parsedEvent = FitnessMachineEvent.TargetTimeInTwoHeartRateZonesChanged;
+                        }
+                        else if (opcode == 0x10)
+                        {
+                            parsedEvent = FitnessMachineEvent.TargetTimeInThreeHeartRateZonesChanged;
+                        }
+                        else
+                        {
+                            parsedEvent = FitnessMachineEvent.TargetTimeInFiveHeartRateZonesChanged;
+                        }
+                        break;
+                    }
+
+                // ----------------------- Simulation Parameters Changed -----------------------
+
+                case 0x12:
+                    {
+                        if (!HasBytes(data, index, 6))
+                            return;
+
+                        short rawWindSpeed = BitConverter.ToInt16(data, index);
+                        short rawGrade = BitConverter.ToInt16(data, index + 2);
+                        byte rawRollingResistance = data[index + 4];
+                        byte rawWindResistance = data[index + 5];
+
+                        trainerConfiguration.WindSpeed = rawWindSpeed / 1000.0;
+                        trainerConfiguration.Grade = rawGrade / 100.0;
+                        trainerConfiguration.RollingResistanceCoefficient = rawRollingResistance / 10000.0;
+                        trainerConfiguration.WindResistanceCoefficient = rawWindResistance / 100.0;
+
+                        parsedEvent = FitnessMachineEvent.SimulationParametersChanged;
+                        break;
+                    }
+
+                // ----------------------- Wheel Circumference Changed -----------------------
+
+                case 0x13:
+                    {
+                        if (!HasBytes(data, index, 2))
+                            return;
+
+                        ushort rawCircumference = BitConverter.ToUInt16(data, index);
+
+                        trainerConfiguration.WheelCircumferenceMm = rawCircumference / 10.0;
+
+                        parsedEvent = FitnessMachineEvent.WheelCircumferenceChanged;
+                        break;
+                    }
+
+                // ----------------------- Spin Down Status -----------------------
+
+                case 0x14:
+                    {
+                        if (!HasBytes(data, index, 1))
+                            return;
+
+                        trainerConfiguration.SpinDownStatusValue = data[index];
+
+                        parsedEvent = FitnessMachineEvent.SpinDownStatus;
+                        break;
+                    }
+
+                // ----------------------- Target Cadence Changed -----------------------
+
+                case 0x15:
+                    {
+                        if (!HasBytes(data, index, 2))
+                            return;
+
+                        ushort rawCadence = BitConverter.ToUInt16(data, index);
+                        trainerConfiguration.TargetCadenceRpm = rawCadence / 2.0;
+
+                        parsedEvent = FitnessMachineEvent.TargetCadenceChanged;
+                        break;
+                    }
+                default:
+                    return;
+            }
+            trainerStatus.LastEvent = parsedEvent;
+            return;
         }
 
         private static bool HasBytes(byte[] data, int index, int count)

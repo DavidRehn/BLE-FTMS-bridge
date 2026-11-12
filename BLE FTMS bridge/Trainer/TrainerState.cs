@@ -50,8 +50,7 @@ namespace BLETestApp.Trainer
                             double distance,
                             int heartRate, 
                             double resistanceLevel,
-                            int energy
-                            ) 
+                            int energy) 
         {
             IsConnected = isConnected;
 

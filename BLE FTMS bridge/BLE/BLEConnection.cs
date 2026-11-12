@@ -3,6 +3,7 @@ using BLE_FTMS_bridge.Trainer;
 using BLETestApp.Trainer;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,7 +23,9 @@ namespace BLETestApp.BLE
         private GattCharacteristic? controlPointCharacteristic;
         private TrainerDevice trainer;
         private FTMSHandler ftmsHandler;
-        
+        private FTMSControlPoint? controlPoint;
+        public FTMSControlPoint? ControlPoint => controlPoint;
+
 
         public BLEConnection(BLEScanner scanner, TrainerDevice trainer)
         {
@@ -83,7 +86,25 @@ namespace BLETestApp.BLE
             if (!await SubscribeBikeData(ftmsService!))
                 return false;
 
-            await SubscribeFitnessMachineStatus(ftmsService!); // Status is optional
+            await SubscribeFitnessMachineStatus(ftmsService!);
+
+            if (!await SubscribeControlPoint(ftmsService!))
+                return false;
+
+            controlPoint = new FTMSControlPoint(controlPointCharacteristic);
+
+            controlPoint = new FTMSControlPoint(controlPointCharacteristic!);
+
+            // Request control of the trainer
+            var response = await controlPoint.RequestControlAsync();
+
+            if (!response.IsSuccess)
+            {
+                Debug.WriteLine(
+                    $"Failed to obtain control permission: {response.ResultCode}");
+
+                return false;
+            }
 
             return true;
         }
@@ -108,11 +129,15 @@ namespace BLETestApp.BLE
             if (!indoorBikeDataCharacteristic.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Notify))
                 return false;   // Notifications not supported
 
-            indoorBikeDataCharacteristic.ValueChanged += ftmsHandler.OnBikeDataReceived;    // Handle incoming IBD data
-
             //Subscribe to characteristic
             var status = await indoorBikeDataCharacteristic.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify);
-            return status == GattCommunicationStatus.Success;
+
+            if (status != GattCommunicationStatus.Success)
+                return false;
+
+            indoorBikeDataCharacteristic.ValueChanged += ftmsHandler.OnBikeDataReceived;
+
+            return true;
         }
 
 
@@ -131,13 +156,44 @@ namespace BLETestApp.BLE
             if (!fitnessMachineStatusCharacteristic.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Notify)) 
                 return false;   // Notifications not supported
 
-            fitnessMachineStatusCharacteristic.ValueChanged += ftmsHandler.OnFitnessMachineStatusReceived;  // Handle incoming status data
-
             // Subscribe to characteristic
             var status = await fitnessMachineStatusCharacteristic.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify);
 
+            if (status != GattCommunicationStatus.Success)
+                return false;
+
+            fitnessMachineStatusCharacteristic.ValueChanged += ftmsHandler.OnFitnessMachineStatusReceived;  // Handle incoming status data
+
+            return true;
+        }
+
+
+
+        // Subscribes to FTMS Control point
+        private async Task<bool> SubscribeControlPoint(GattDeviceService ftmsService)
+        {
+            var controlPointUuid = Guid.Parse("00002AD9-0000-1000-8000-00805f9b34fb");
+            var result = await ftmsService.GetCharacteristicsForUuidAsync(controlPointUuid);
+
+            if (result.Status != GattCommunicationStatus.Success || result.Characteristics.Count == 0)
+                return false;
+
+            controlPointCharacteristic = result.Characteristics.First();
+
+            var properties = controlPointCharacteristic.CharacteristicProperties;
+
+            if (!properties.HasFlag(GattCharacteristicProperties.Indicate))
+                return false;
+
+            if (!properties.HasFlag(GattCharacteristicProperties.Write))
+                return false;
+
+            // Subscribe to indications
+            var status = await controlPointCharacteristic.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Indicate);
+
             return status == GattCommunicationStatus.Success;
         }
+
 
 
         // ----------------------------------------- Handlers for incoming data -----------------------------------------

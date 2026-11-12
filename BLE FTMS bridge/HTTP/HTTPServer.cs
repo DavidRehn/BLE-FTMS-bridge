@@ -1,4 +1,5 @@
-﻿using BLE_FTMS_bridge.Trainer;
+﻿using BLE_FTMS_bridge.BLE;
+using BLE_FTMS_bridge.Trainer;
 using BLETestApp.BLE;
 using System;
 using System.Collections.Generic;
@@ -52,7 +53,7 @@ namespace BLE_FTMS_bridge.HTTP
                         programState.IsRunning = false;
                         break;
                     }
-                    // Request for trainer status
+                    // Request for trainer state
                     else if ((req.HttpMethod == "GET") && (req.Url.AbsolutePath == "/trainer_state"))
                     {
                         string json = JsonSerializer.Serialize(trainer.trainerState);
@@ -62,6 +63,19 @@ namespace BLE_FTMS_bridge.HTTP
                     else if ((req.HttpMethod == "GET") && (req.Url.AbsolutePath == "/trainer_capabilities"))
                     {
                         string json = JsonSerializer.Serialize(trainer.trainerCapabilities);
+                        await RespondJSON(json, resp);
+                    }
+                    // Request for trainer configuration (target settings)
+                    else if ((req.HttpMethod == "GET") && (req.Url.AbsolutePath == "/trainer_configuration"))
+                    {
+                        string json = JsonSerializer.Serialize(trainer.trainerConfiguration);
+                        await RespondJSON(json, resp);
+                    }
+                    // Request for trainer status
+                    else if ((req.HttpMethod == "GET") && (req.Url.AbsolutePath == "/trainer_status"))
+                    {
+                        var status = new {trainer.trainerStatus.IsRunning, trainer.trainerStatus.IsPaused};
+                        string json = JsonSerializer.Serialize(status);
                         await RespondJSON(json, resp);
                     }
                     // Request for connectable devices
@@ -106,7 +120,29 @@ namespace BLE_FTMS_bridge.HTTP
                     }
                     else if ((req.HttpMethod == "PUT") && (req.Url.AbsolutePath == "/set_target_resistance"))
                     {
+                        using StreamReader reader = new StreamReader(req.InputStream);
+                        string body = await reader.ReadToEndAsync();                        // received body
 
+                        try
+                        {
+                            SetResistanceRequest? request = JsonSerializer.Deserialize<SetResistanceRequest>(body);
+
+                            if (request == null)
+                            {
+                                await RespondJSON("{\"success\":false,\"error\":\"Invalid request\"}", resp, 400);
+                                continue;
+                            }
+
+                            FitnessMachineControlResponse response = await conn.ControlPoint.SetTargetResistanceAsync(request.resistance);
+                            bool success = response.IsSuccess;
+                            int status = success ? 200 : 400;
+                            body = success ? "{\"success\":true}" : "{\"success\":false}";    // body of response
+                            await RespondJSON(body, resp, status);
+                        }
+                        catch (JsonException e)
+                        {
+                            await RespondJSON("{\"success\":false,\"error\":\"Invalid address\"}", resp, 400);
+                        }
                     }
                     else if ((req.HttpMethod == "PUT") && (req.Url.AbsolutePath == "/set_target_power"))
                     {
@@ -130,7 +166,8 @@ namespace BLE_FTMS_bridge.HTTP
                     }
                     else
                     {
-                        await RespondJSON("{\"success\":false,\"error\":\"Invalid command\"}", resp, 404);  // For commands that doesn't match any of the above
+                        // For commands that doesn't match any of the above
+                        await RespondJSON("{\"success\":false,\"error\":\"Invalid command\"}", resp, 404);  
                     }
                 }
             }
@@ -140,7 +177,7 @@ namespace BLE_FTMS_bridge.HTTP
             }
         }
 
-        private async Task RespondJSON(string json, HttpListenerResponse response, int statusCode = 200)    // statusCode defaults to 200
+        private async Task RespondJSON(string json, HttpListenerResponse response, int statusCode = 200)
         {
             byte[] data = Encoding.UTF8.GetBytes(json);
             response.StatusCode = statusCode;

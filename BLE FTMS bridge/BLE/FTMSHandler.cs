@@ -28,7 +28,6 @@ namespace BLE_FTMS_bridge.BLE
             var reader = DataReader.FromBuffer(args.CharacteristicValue);
             byte[] data = new byte[args.CharacteristicValue.Length];
             reader.ReadBytes(data);
-
             parser.ParseIndoorBikeData(data, trainer.trainerState);
         }
 
@@ -39,10 +38,7 @@ namespace BLE_FTMS_bridge.BLE
             var reader = DataReader.FromBuffer(args.CharacteristicValue);
             byte[] data = new byte[args.CharacteristicValue.Length];
             reader.ReadBytes(data);
-
-
-            // Parse the FTMS status here
-            Console.WriteLine("test");
+            parser.ParseFitnessMachineStatus(data, trainer.trainerStatus, trainer.trainerConfiguration);
         }
 
 
