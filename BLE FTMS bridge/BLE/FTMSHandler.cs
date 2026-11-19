@@ -67,5 +67,148 @@ namespace BLE_FTMS_bridge.BLE
 
             return true;
         }
+
+
+        // Reads the Supported Resistance Level Range characteristicz
+        public async Task<bool> ReadSupportedResistanceRange(GattDeviceService ftmsService)
+        {
+            var uuid = Guid.Parse("00002AD6-0000-1000-8000-00805f9b34fb");
+
+            var result = await ftmsService.GetCharacteristicsForUuidAsync(uuid);
+
+            if (result.Status != GattCommunicationStatus.Success ||
+                result.Characteristics.Count == 0)
+                return false;
+
+            var characteristic = result.Characteristics.First();
+
+            var readResult = await characteristic.ReadValueAsync();
+
+            if (readResult.Status != GattCommunicationStatus.Success)
+                return false;
+
+            var reader = DataReader.FromBuffer(readResult.Value);
+            byte[] data = new byte[readResult.Value.Length];
+            reader.ReadBytes(data);
+
+            parser.ParseSupportedResistanceRange(data, trainer.trainerCapabilities);
+
+            return true;
+        }
+
+
+        // Reads the Supported Heart Rate Range characteristic
+        public async Task<bool> ReadSupportedHeartRateRange(GattDeviceService ftmsService)
+        {
+            var uuid = Guid.Parse("00002AD7-0000-1000-8000-00805f9b34fb");
+
+            var result = await ftmsService.GetCharacteristicsForUuidAsync(uuid);
+
+            if (result.Status != GattCommunicationStatus.Success ||
+                result.Characteristics.Count == 0)
+                return false;
+
+            var characteristic = result.Characteristics.First();
+
+            var readResult = await characteristic.ReadValueAsync();
+
+            if (readResult.Status != GattCommunicationStatus.Success)
+                return false;
+
+            var reader = DataReader.FromBuffer(readResult.Value);
+            byte[] data = new byte[readResult.Value.Length];
+            reader.ReadBytes(data);
+
+            parser.ParseSupportedHeartRateRange(data, trainer.trainerCapabilities);
+
+            return true;
+        }
+
+
+
+        // Reads the Supported Speed Range characteristic
+        public async Task<bool> ReadSupportedSpeedRange(GattDeviceService ftmsService)
+        {
+            var uuid = Guid.Parse("00002AD4-0000-1000-8000-00805f9b34fb");
+
+            var result = await ftmsService.GetCharacteristicsForUuidAsync(uuid);
+
+            if (result.Status != GattCommunicationStatus.Success ||
+                result.Characteristics.Count == 0)
+                return false;
+
+            var characteristic = result.Characteristics.First();
+
+            var readResult = await characteristic.ReadValueAsync();
+
+            if (readResult.Status != GattCommunicationStatus.Success)
+                return false;
+
+            var reader = DataReader.FromBuffer(readResult.Value);
+            byte[] data = new byte[readResult.Value.Length];
+            reader.ReadBytes(data);
+
+            parser.ParseSupportedSpeedRange(data, trainer.trainerCapabilities);
+
+            return true;
+        }
+
+
+
+        // Reads the Supported Inclination Range characteristic
+        public async Task<bool> ReadSupportedInclinationRange(GattDeviceService ftmsService)
+        {
+            var uuid = Guid.Parse("00002AD5-0000-1000-8000-00805f9b34fb");
+
+            var result = await ftmsService.GetCharacteristicsForUuidAsync(uuid);
+
+            if (result.Status != GattCommunicationStatus.Success ||
+                result.Characteristics.Count == 0)
+                return false;
+
+            var characteristic = result.Characteristics.First();
+
+            var readResult = await characteristic.ReadValueAsync();
+
+            if (readResult.Status != GattCommunicationStatus.Success)
+                return false;
+
+            var reader = DataReader.FromBuffer(readResult.Value);
+            byte[] data = new byte[readResult.Value.Length];
+            reader.ReadBytes(data);
+
+            parser.ParseSupportedInclinationRange(data, trainer.trainerCapabilities);
+
+            return true;
+        }
+
+
+
+        // Reads the Supported Power Range characteristic
+        public async Task<bool> ReadSupportedPowerRange(GattDeviceService ftmsService)
+        {
+            var uuid = Guid.Parse("00002AD8-0000-1000-8000-00805f9b34fb");
+
+            var result = await ftmsService.GetCharacteristicsForUuidAsync(uuid);
+
+            if (result.Status != GattCommunicationStatus.Success ||
+                result.Characteristics.Count == 0)
+                return false;
+
+            var characteristic = result.Characteristics.First();
+
+            var readResult = await characteristic.ReadValueAsync();
+
+            if (readResult.Status != GattCommunicationStatus.Success)
+                return false;
+
+            var reader = DataReader.FromBuffer(readResult.Value);
+            byte[] data = new byte[readResult.Value.Length];
+            reader.ReadBytes(data);
+
+            parser.ParseSupportedPowerRange(data, trainer.trainerCapabilities);
+
+            return true;
+        }
     }
 }

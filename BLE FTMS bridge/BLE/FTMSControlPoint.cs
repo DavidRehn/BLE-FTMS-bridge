@@ -1,10 +1,11 @@
-﻿using System;
+﻿using BLE_FTMS_bridge.BLE.Enum;
+using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
 using Windows.Storage.Streams;
-using BLE_FTMS_bridge.BLE.Enum;
 
 namespace BLE_FTMS_bridge.BLE
 {
@@ -153,12 +154,18 @@ namespace BLE_FTMS_bridge.BLE
 
             byte[] parameters = BitConverter.GetBytes(rawValue);
 
-            return ExecuteCommandAsync(new byte[]
+            byte[] command =
             {
                 0x04,
                 parameters[0],
                 parameters[1]
-            });
+            };
+
+            Console.WriteLine($"Requested resistance: {resistance}");
+            Console.WriteLine($"Raw resistance: {rawValue}");
+            Console.WriteLine($"Command: {BitConverter.ToString(command)}");
+
+            return ExecuteCommandAsync(command);
         }
 
         // Call when trainer disconnects

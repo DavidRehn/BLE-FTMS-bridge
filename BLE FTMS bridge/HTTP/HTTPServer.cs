@@ -3,6 +3,7 @@ using BLE_FTMS_bridge.Trainer;
 using BLETestApp.BLE;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -125,7 +126,12 @@ namespace BLE_FTMS_bridge.HTTP
 
                         try
                         {
-                            SetResistanceRequest? request = JsonSerializer.Deserialize<SetResistanceRequest>(body);
+                            SetResistanceRequest? request = JsonSerializer.Deserialize<SetResistanceRequest>(body, new JsonSerializerOptions
+                                {
+                                    PropertyNameCaseInsensitive = true
+                                });
+                            Console.WriteLine($"Received JSON: {body}");
+                            Console.WriteLine($"Parsed resistance: {request.resistance}");
 
                             if (request == null)
                             {

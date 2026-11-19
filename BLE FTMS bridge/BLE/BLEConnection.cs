@@ -26,6 +26,8 @@ namespace BLETestApp.BLE
         private FTMSControlPoint? controlPoint;
         public FTMSControlPoint? ControlPoint => controlPoint;
 
+        public bool SupportsFitnessMachineStatus { get; private set; }
+
 
         public BLEConnection(BLEScanner scanner, TrainerDevice trainer)
         {
@@ -86,14 +88,23 @@ namespace BLETestApp.BLE
             if (!await SubscribeBikeData(ftmsService!))
                 return false;
 
-            await SubscribeFitnessMachineStatus(ftmsService!);
+            SupportsFitnessMachineStatus = await SubscribeFitnessMachineStatus(ftmsService!);
+            trainer.trainerCapabilities.SupportsSpinDown = trainer.trainerCapabilities.SupportsSpinDown && SupportsFitnessMachineStatus;
+
+            if (!SupportsFitnessMachineStatus)
+                Debug.WriteLine("Fitness Machine Status unavailable. Some features will be disabled.");
 
             if (!await SubscribeControlPoint(ftmsService!))
                 return false;
 
-            controlPoint = new FTMSControlPoint(controlPointCharacteristic);
-
             controlPoint = new FTMSControlPoint(controlPointCharacteristic!);
+
+            await ReadSupportedRanges();
+
+            Console.WriteLine(trainer.trainerCapabilities.MinResistance);
+            Console.WriteLine(trainer.trainerCapabilities.MaxResistance);
+            Console.WriteLine(trainer.trainerCapabilities.ResistanceIncrement);
+
 
             // Request control of the trainer
             var response = await controlPoint.RequestControlAsync();
@@ -107,6 +118,36 @@ namespace BLETestApp.BLE
             }
 
             return true;
+        }
+
+        private async Task ReadSupportedRanges()
+        {
+            if (!await ftmsHandler.ReadSupportedHeartRateRange(ftmsService!))
+                Debug.WriteLine("Could not read supported heart rate range.");
+
+            if (trainer.trainerCapabilities.SupportsResistanceControl)
+            {
+                if (!await ftmsHandler.ReadSupportedResistanceRange(ftmsService!))
+                    Debug.WriteLine("Failed to read supported resistance range.");
+            }
+
+            if (trainer.trainerCapabilities.SupportsPowerControl)
+            {
+                if (!await ftmsHandler.ReadSupportedPowerRange(ftmsService!))
+                    Debug.WriteLine("Failed to read supported power range.");
+            }
+
+            if (trainer.trainerCapabilities.SupportsInclinationControl)
+            {
+                if (!await ftmsHandler.ReadSupportedInclinationRange(ftmsService!))
+                    Debug.WriteLine("Failed to read supported incline range.");
+            }
+
+            if (trainer.trainerCapabilities.SupportsSpeedControl)
+            {
+                if (!await ftmsHandler.ReadSupportedSpeedRange(ftmsService!))
+                    Debug.WriteLine("Failed to read supported speed range.");
+            }
         }
 
 

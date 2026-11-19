@@ -563,6 +563,77 @@ namespace BLETestApp.BLE
             return;
         }
 
+        // Parses Supported Resistance Level Range
+        public void ParseSupportedResistanceRange(byte[] data, TrainerCapabilities trainerCapabilities)
+        {
+            if (data == null || data.Length < 6 || trainerCapabilities == null)
+                return;
+
+            short min = BitConverter.ToInt16(data, 0);
+            short max = BitConverter.ToInt16(data, 2);
+            short increment = BitConverter.ToInt16(data, 4);
+
+            trainerCapabilities.MinResistance = min / 10.0;
+            trainerCapabilities.MaxResistance = max / 10.0;
+            trainerCapabilities.ResistanceIncrement = increment / 10.0;
+        }
+
+
+        // Parses Supported Heart Rate Range
+        public void ParseSupportedHeartRateRange(byte[] data, TrainerCapabilities trainerCapabilities)
+        {
+            if (data == null || data.Length < 3 || trainerCapabilities == null)
+                return;
+
+            trainerCapabilities.MinHeartRate = data[0];
+            trainerCapabilities.MaxHeartRate = data[1];
+            trainerCapabilities.HeartRateIncrement = data[2];
+        }
+
+
+        // Parses Supported Speed Range
+        public void ParseSupportedSpeedRange(byte[] data, TrainerCapabilities trainerCapabilities)
+        {
+            if (data == null || data.Length < 6 || trainerCapabilities == null)
+                return;
+
+            ushort min = BitConverter.ToUInt16(data, 0);
+            ushort max = BitConverter.ToUInt16(data, 2);
+            ushort increment = BitConverter.ToUInt16(data, 4);
+
+            trainerCapabilities.MinSpeedKph = min / 100.0;
+            trainerCapabilities.MaxSpeedKph = max / 100.0;
+            trainerCapabilities.SpeedIncrementKph = increment / 100.0;
+        }
+
+
+        // Parses Supported Inclination Range
+        public void ParseSupportedInclinationRange(byte[] data, TrainerCapabilities trainerCapabilities)
+        {
+            if (data == null || data.Length < 6 || trainerCapabilities == null)
+                return;
+
+            short min = BitConverter.ToInt16(data, 0);
+            short max = BitConverter.ToInt16(data, 2);
+            short increment = BitConverter.ToInt16(data, 4);
+
+            trainerCapabilities.MinInclination = min / 10.0;
+            trainerCapabilities.MaxInclination = max / 10.0;
+            trainerCapabilities.InclinationIncrement = increment / 10.0;
+        }
+
+
+        // Parses Supported Power Range
+        public void ParseSupportedPowerRange(byte[] data, TrainerCapabilities trainerCapabilities)
+        {
+            if (data == null || data.Length < 6 || trainerCapabilities == null)
+                return;
+
+            trainerCapabilities.MinPowerWatts = BitConverter.ToInt16(data, 0);
+            trainerCapabilities.MaxPowerWatts = BitConverter.ToInt16(data, 2);
+            trainerCapabilities.PowerIncrementWatts = BitConverter.ToInt16(data, 4);
+        }
+
         private static bool HasBytes(byte[] data, int index, int count)
         {
             return index + count <= data.Length;

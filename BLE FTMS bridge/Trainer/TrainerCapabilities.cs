@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BLE_FTMS_bridge.Trainer;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -39,7 +40,33 @@ namespace BLETestApp.Trainer
         public bool SupportsSpinDown { get; set; }
 
 
+        // Supported ranges
 
-        public TrainerCapabilities() { }
+        // Resistance (resolution: 0.1)
+        public double MinResistance { get; set; }
+        public double MaxResistance { get; set; }
+        public double ResistanceIncrement { get; set; }
+
+        // Heart rate (resolution: 1 bpm)
+        public byte MinHeartRate { get; set; }
+        public byte MaxHeartRate { get; set; }
+        public byte HeartRateIncrement { get; set; }
+
+        // Speed (resolution: 0.01 km/h)
+        public double MinSpeedKph { get; set; }
+        public double MaxSpeedKph { get; set; }
+        public double SpeedIncrementKph { get; set; }
+
+        // Inclination (resolution: 0.1%)
+        public double MinInclination { get; set; }
+        public double MaxInclination { get; set; }
+        public double InclinationIncrement { get; set; }
+
+        // Power (resolution: 1 W)
+        public short MinPowerWatts { get; set; }
+        public short MaxPowerWatts { get; set; }
+        public short PowerIncrementWatts { get; set; }
+
+
     }
 }
