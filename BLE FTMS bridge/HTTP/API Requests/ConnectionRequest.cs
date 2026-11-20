@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace BLE_FTMS_bridge.HTTP
 {
-    public class ConnectRequest
+    public class ConnectionRequest
     {
         public ulong Address { get; set; }
     }

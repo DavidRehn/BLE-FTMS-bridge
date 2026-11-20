@@ -4,10 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BLE_FTMS_bridge.HTTP
+namespace BLE_FTMS_bridge.HTTP.API_Requests
 {
-    public class SetResistanceRequest
+    public class SetPowerRequest
     {
-        public double resistance {  get; set; }
+        public short Power {  get; set; }
     }
 }

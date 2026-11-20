@@ -8,6 +8,8 @@ namespace BLE_FTMS_bridge.Trainer
 {
     public class TrainerConfiguration
     {
+        public TargetMode ControlMode { get; set; }
+
         // ----------------------- Target Values -----------------------
 
         public double? TargetSpeedKph { get; set; }
@@ -32,5 +34,38 @@ namespace BLE_FTMS_bridge.Trainer
         public double? WheelCircumferenceMm { get; set; }
         public byte? SpinDownStatusValue { get; set; }
         public short? SpinDownResult { get; set; }
+
+
+        public TrainerConfiguration()
+        {
+            ControlMode = TargetMode.None;
+            TargetSpeedKph = null;
+            TargetInclination = null;
+            TargetResistance = null;
+            TargetPowerWatts = null;
+            TargetHeartRate = null;
+            TargetCadenceRpm = null;
+            WindSpeed = null;
+            Grade = null;
+            RollingResistanceCoefficient = null;
+            WindResistanceCoefficient = null;
+            WheelCircumferenceMm = null;
+            SpinDownStatusValue = null;
+            SpinDownResult = null;
+        }
+
+        public void Reset()
+        {
+            TargetSpeedKph = null;
+            TargetInclination = null;
+            TargetResistance = null;
+            TargetPowerWatts = null;
+            TargetHeartRate = null;
+            TargetCadenceRpm = null;
+            WindSpeed = null;
+            Grade = null;
+            RollingResistanceCoefficient = null;
+            WindResistanceCoefficient = null;
+        }
     }
 }

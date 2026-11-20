@@ -97,7 +97,7 @@ namespace BLETestApp.BLE
             if (!await SubscribeControlPoint(ftmsService!))
                 return false;
 
-            controlPoint = new FTMSControlPoint(controlPointCharacteristic!);
+            controlPoint = new FTMSControlPoint(controlPointCharacteristic!, trainer);
 
             await ReadSupportedRanges();
 

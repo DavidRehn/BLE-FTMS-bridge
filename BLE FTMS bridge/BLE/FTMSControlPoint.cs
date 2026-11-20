@@ -6,6 +6,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
 using Windows.Storage.Streams;
+using BLETestApp.Trainer;
+using BLE_FTMS_bridge.Trainer;
 
 namespace BLE_FTMS_bridge.BLE
 {
@@ -16,13 +18,14 @@ namespace BLE_FTMS_bridge.BLE
         private TaskCompletionSource<FitnessMachineControlResponse>? pendingResponse;
         private byte? pendingOpcode;
         public bool HasControlPermission { get; private set; }
+        private TrainerDevice trainer;
 
 
-        public FTMSControlPoint(GattCharacteristic characteristic)
+        public FTMSControlPoint(GattCharacteristic characteristic, TrainerDevice trainer)
         {
             controlPoint = characteristic ?? throw new ArgumentNullException(nameof(characteristic));
-
             controlPoint.ValueChanged += ControlPointValueChanged;
+            this.trainer = trainer;
         }
 
         private void ControlPointValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
@@ -136,19 +139,20 @@ namespace BLE_FTMS_bridge.BLE
             return ExecuteCommandAsync(new byte[] { 0x08, 0x02 });
         }
 
-        public Task<FitnessMachineControlResponse> SetTargetPowerAsync(short watts)
+        public async Task<FitnessMachineControlResponse> SetTargetPowerAsync(short watts)
         {
             byte[] parameters = BitConverter.GetBytes(watts);
-
-            return ExecuteCommandAsync(new byte[]
+            FitnessMachineControlResponse response = await ExecuteCommandAsync(new byte[] { 0x05, parameters[0], parameters[1] });
+            if (response.IsSuccess)
             {
-                0x05,
-                parameters[0],
-                parameters[1]
-            });
+                trainer.trainerConfiguration.Reset();
+                trainer.trainerConfiguration.TargetPowerWatts = watts;
+                trainer.trainerConfiguration.ControlMode = TargetMode.Power;
+            }
+            return response;
         }
 
-        public Task<FitnessMachineControlResponse> SetTargetResistanceAsync(double resistance)
+        public async Task<FitnessMachineControlResponse> SetTargetResistanceAsync(double resistance)
         {
             short rawValue = checked((short)Math.Round(resistance * 10.0));
 
@@ -165,7 +169,16 @@ namespace BLE_FTMS_bridge.BLE
             Console.WriteLine($"Raw resistance: {rawValue}");
             Console.WriteLine($"Command: {BitConverter.ToString(command)}");
 
-            return ExecuteCommandAsync(command);
+            FitnessMachineControlResponse response = await ExecuteCommandAsync(command);
+
+            if (response.IsSuccess)
+            {
+                trainer.trainerConfiguration.Reset();
+                trainer.trainerConfiguration.TargetResistance = resistance;
+                trainer.trainerConfiguration.ControlMode = TargetMode.Resistance;
+            }
+
+            return response;
         }
 
         // Call when trainer disconnects

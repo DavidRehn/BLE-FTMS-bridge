@@ -1,4 +1,5 @@
 ﻿using BLE_FTMS_bridge.BLE;
+using BLE_FTMS_bridge.HTTP.API_Requests;
 using BLE_FTMS_bridge.Trainer;
 using BLETestApp.BLE;
 using System;
@@ -8,6 +9,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 
@@ -69,7 +71,12 @@ namespace BLE_FTMS_bridge.HTTP
                     // Request for trainer configuration (target settings)
                     else if ((req.HttpMethod == "GET") && (req.Url.AbsolutePath == "/trainer_configuration"))
                     {
-                        string json = JsonSerializer.Serialize(trainer.trainerConfiguration);
+                        JsonSerializerOptions options = new JsonSerializerOptions
+                        {
+                            Converters = { new JsonStringEnumConverter() }
+                        };
+
+                        string json = JsonSerializer.Serialize(trainer.trainerConfiguration, options);
                         await RespondJSON(json, resp);
                     }
                     // Request for trainer status
@@ -93,7 +100,7 @@ namespace BLE_FTMS_bridge.HTTP
 
                         try
                         {
-                            ConnectRequest? request = JsonSerializer.Deserialize<ConnectRequest>(body);
+                            ConnectionRequest? request = JsonSerializer.Deserialize<ConnectionRequest>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
                             if (request == null)
                             {
@@ -126,12 +133,7 @@ namespace BLE_FTMS_bridge.HTTP
 
                         try
                         {
-                            SetResistanceRequest? request = JsonSerializer.Deserialize<SetResistanceRequest>(body, new JsonSerializerOptions
-                                {
-                                    PropertyNameCaseInsensitive = true
-                                });
-                            Console.WriteLine($"Received JSON: {body}");
-                            Console.WriteLine($"Parsed resistance: {request.resistance}");
+                            SetResistanceRequest? request = JsonSerializer.Deserialize<SetResistanceRequest>(body, new JsonSerializerOptions{PropertyNameCaseInsensitive = true});
 
                             if (request == null)
                             {
@@ -139,20 +141,42 @@ namespace BLE_FTMS_bridge.HTTP
                                 continue;
                             }
 
-                            FitnessMachineControlResponse response = await conn.ControlPoint.SetTargetResistanceAsync(request.resistance);
+                            FitnessMachineControlResponse response = await conn.ControlPoint.SetTargetResistanceAsync(request.Resistance);
                             bool success = response.IsSuccess;
                             int status = success ? 200 : 400;
                             body = success ? "{\"success\":true}" : "{\"success\":false}";    // body of response
                             await RespondJSON(body, resp, status);
                         }
-                        catch (JsonException e)
+                        catch (Exception e)
                         {
-                            await RespondJSON("{\"success\":false,\"error\":\"Invalid address\"}", resp, 400);
+                            await RespondJSON("{\"success\":false,\"error\":\"Invalid target\"}", resp, 400);
                         }
                     }
                     else if ((req.HttpMethod == "PUT") && (req.Url.AbsolutePath == "/set_target_power"))
                     {
+                        using StreamReader reader = new StreamReader(req.InputStream);
+                        string body = await reader.ReadToEndAsync();                        // received body
 
+                        try
+                        {
+                            SetPowerRequest? request = JsonSerializer.Deserialize<SetPowerRequest>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                            if (request == null)
+                            {
+                                await RespondJSON("{\"success\":false,\"error\":\"Invalid request\"}", resp, 400);
+                                continue;
+                            }
+
+                            FitnessMachineControlResponse response = await conn.ControlPoint.SetTargetPowerAsync(request.Power);
+                            bool success = response.IsSuccess;
+                            int status = success ? 200 : 400;
+                            body = success ? "{\"success\":true}" : "{\"success\":false}";    // body of response
+                            await RespondJSON(body, resp, status);
+                        }
+                        catch (Exception e)
+                        {
+                            await RespondJSON("{\"success\":false,\"error\":\"Invalid target\"}", resp, 400);
+                        }
                     }
                     else if ((req.HttpMethod == "PUT") && (req.Url.AbsolutePath == "/set_target_cadence"))
                     {
