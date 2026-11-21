@@ -101,11 +101,6 @@ namespace BLETestApp.BLE
 
             await ReadSupportedRanges();
 
-            Console.WriteLine(trainer.trainerCapabilities.MinResistance);
-            Console.WriteLine(trainer.trainerCapabilities.MaxResistance);
-            Console.WriteLine(trainer.trainerCapabilities.ResistanceIncrement);
-
-
             // Request control of the trainer
             var response = await controlPoint.RequestControlAsync();
 

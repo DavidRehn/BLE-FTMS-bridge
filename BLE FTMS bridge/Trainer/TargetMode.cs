@@ -12,9 +12,7 @@ namespace BLE_FTMS_bridge.Trainer
         Resistance,
         Power,
         Simulation,
-        HeartRate,
         Incline, 
-        Speed,
-        Cadence
+        Speed
     }
 }

@@ -271,7 +271,7 @@ namespace BLETestApp.BLE
             trainerCapabilities.SupportsSpinDown = (targetFeatures & (1u << 15)) != 0;
 
             // Targeted Cadence
-            trainerCapabilities.SupportsTargetedCadence = (targetFeatures & (1u << 16)) != 0;
+            trainerCapabilities.SupportsCadenceControl = (targetFeatures & (1u << 16)) != 0;
         }
 
         public void ParseFitnessMachineStatus(byte[] data, TrainerStatus trainerStatus, TrainerConfiguration trainerConfiguration)

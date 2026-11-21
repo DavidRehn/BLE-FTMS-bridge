@@ -32,7 +32,7 @@ namespace BLETestApp.Trainer
         public bool SupportsResistanceControl { get; set; }
         public bool SupportsPowerControl { get; set; }
         public bool SupportsHeartRateControl { get; set; }
-        public bool SupportsTargetedCadence { get; set; }
+        public bool SupportsCadenceControl { get; set; }
 
         // other
         public bool SupportsSimulation { get; set; }

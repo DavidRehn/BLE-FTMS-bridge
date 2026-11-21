@@ -120,14 +120,76 @@ namespace BLE_FTMS_bridge.HTTP
                     }
                     else if ((req.HttpMethod == "PUT") && (req.Url.AbsolutePath == "/set_target_speed"))
                     {
+                        if (!trainer.trainerCapabilities.SupportsSpeedControl)
+                        {
+                            await RespondJSON("{\"success\":false,\"error\":\"Device doesn't support speed control\"}", resp, 422);
+                            continue;
+                        } 
 
+                        using StreamReader reader = new StreamReader(req.InputStream);
+                        string body = await reader.ReadToEndAsync();                        // received body
+
+                        try
+                        {
+                            SetSpeedRequest? request = JsonSerializer.Deserialize<SetSpeedRequest>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                            if (request == null)
+                            {
+                                await RespondJSON("{\"success\":false,\"error\":\"Invalid request\"}", resp, 400);
+                                continue;
+                            }
+
+                            FitnessMachineControlResponse response = await conn.ControlPoint.SetTargetSpeedAsync(request.Speed);
+                            bool success = response.IsSuccess;
+                            int status = success ? 200 : 400;
+                            body = success ? "{\"success\":true}" : "{\"success\":false}";    // body of response
+                            await RespondJSON(body, resp, status);
+                        }
+                        catch (Exception e)
+                        {
+                            await RespondJSON("{\"success\":false,\"error\":\"Invalid target\"}", resp, 400);
+                        }
                     }
                     else if ((req.HttpMethod == "PUT") && (req.Url.AbsolutePath == "/set_target_incline"))
                     {
+                        if (!trainer.trainerCapabilities.SupportsInclinationControl)
+                        {
+                            await RespondJSON("{\"success\":false,\"error\":\"Device doesn't support incline control\"}", resp, 422);
+                            continue;
+                        }
 
+                        using StreamReader reader = new StreamReader(req.InputStream);
+                        string body = await reader.ReadToEndAsync();                        // received body
+
+                        try
+                        {
+                            SetInclineRequest? request = JsonSerializer.Deserialize<SetInclineRequest>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                            if (request == null)
+                            {
+                                await RespondJSON("{\"success\":false,\"error\":\"Invalid request\"}", resp, 400);
+                                continue;
+                            }
+
+                            FitnessMachineControlResponse response = await conn.ControlPoint.SetTargetInclinationAsync(request.Incline);
+                            bool success = response.IsSuccess;
+                            int status = success ? 200 : 400;
+                            body = success ? "{\"success\":true}" : "{\"success\":false}";    // body of response
+                            await RespondJSON(body, resp, status);
+                        }
+                        catch (Exception e)
+                        {
+                            await RespondJSON("{\"success\":false,\"error\":\"Invalid target\"}", resp, 400);
+                        }
                     }
                     else if ((req.HttpMethod == "PUT") && (req.Url.AbsolutePath == "/set_target_resistance"))
                     {
+                        if (!trainer.trainerCapabilities.SupportsResistanceControl)
+                        {
+                            await RespondJSON("{\"success\":false,\"error\":\"Device doesn't support resistance control\"}", resp, 422);
+                            continue;
+                        }
+
                         using StreamReader reader = new StreamReader(req.InputStream);
                         string body = await reader.ReadToEndAsync();                        // received body
 
@@ -154,6 +216,12 @@ namespace BLE_FTMS_bridge.HTTP
                     }
                     else if ((req.HttpMethod == "PUT") && (req.Url.AbsolutePath == "/set_target_power"))
                     {
+                        if (!trainer.trainerCapabilities.SupportsPowerControl)
+                        {
+                            await RespondJSON("{\"success\":false,\"error\":\"Device doesn't support power control\"}", resp, 422);
+                            continue;
+                        }
+
                         using StreamReader reader = new StreamReader(req.InputStream);
                         string body = await reader.ReadToEndAsync();                        // received body
 
@@ -180,11 +248,109 @@ namespace BLE_FTMS_bridge.HTTP
                     }
                     else if ((req.HttpMethod == "PUT") && (req.Url.AbsolutePath == "/set_target_cadence"))
                     {
+                        if (!trainer.trainerCapabilities.SupportsCadenceControl)
+                        {
+                            await RespondJSON("{\"success\":false,\"error\":\"Device doesn't support cadence control\"}", resp, 422);
+                            continue;
+                        }
 
+                        using StreamReader reader = new StreamReader(req.InputStream);
+                        string body = await reader.ReadToEndAsync();                        // received body
+
+                        try
+                        {
+                            SetCadenceRequest? request = JsonSerializer.Deserialize<SetCadenceRequest>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                            if (request == null)
+                            {
+                                await RespondJSON("{\"success\":false,\"error\":\"Invalid request\"}", resp, 400);
+                                continue;
+                            }
+
+                            FitnessMachineControlResponse response = await conn.ControlPoint.SetTargetCadenceAsync(request.Cadence);
+                            bool success = response.IsSuccess;
+                            int status = success ? 200 : 400;
+                            body = success ? "{\"success\":true}" : "{\"success\":false}";    // body of response
+                            await RespondJSON(body, resp, status);
+                        }
+                        catch (Exception e)
+                        {
+                            await RespondJSON("{\"success\":false,\"error\":\"Invalid target\"}", resp, 400);
+                        }
+                    }
+                    else if ((req.HttpMethod == "PUT") && (req.Url.AbsolutePath == "/set_target_heartrate"))
+                    {
+                        if (!trainer.trainerCapabilities.SupportsHeartRateControl)
+                        {
+                            await RespondJSON("{\"success\":false,\"error\":\"Device doesn't support heartrate control\"}", resp, 422);
+                            continue;
+                        }
+
+                        using StreamReader reader = new StreamReader(req.InputStream);
+                        string body = await reader.ReadToEndAsync();                        // received body
+
+                        try
+                        {
+                            SetHeartRateRequest? request = JsonSerializer.Deserialize<SetHeartRateRequest>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                            if (request == null)
+                            {
+                                await RespondJSON("{\"success\":false,\"error\":\"Invalid request\"}", resp, 400);
+                                continue;
+                            }
+
+                            FitnessMachineControlResponse response = await conn.ControlPoint.SetTargetHeartRateAsync(request.HeartRate);
+                            bool success = response.IsSuccess;
+                            int status = success ? 200 : 400;
+                            body = success ? "{\"success\":true}" : "{\"success\":false}";    // body of response
+                            await RespondJSON(body, resp, status);
+                        }
+                        catch (Exception e)
+                        {
+                            await RespondJSON("{\"success\":false,\"error\":\"Invalid target\"}", resp, 400);
+                        }
                     }
                     else if ((req.HttpMethod == "PUT") && (req.Url.AbsolutePath == "/set_simulation_parameters"))
                     {
+                        if (!trainer.trainerCapabilities.SupportsSimulation)
+                        {
+                            await RespondJSON("{\"success\":false,\"error\":\"Device doesn't support simulation\"}", resp, 422);
+                            continue;
+                        }
 
+                        using StreamReader reader = new StreamReader(req.InputStream);
+                        string body = await reader.ReadToEndAsync();                        // received body
+
+                        try
+                        {
+                            SetSimulationRequest? request = JsonSerializer.Deserialize<SetSimulationRequest>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                            Console.WriteLine($"Received JSON: {body}");
+                            Console.WriteLine($"Parsed wind: {request.WindSpeed}");
+                            Console.WriteLine($"Parsed grade: {request.Grade}");
+                            Console.WriteLine($"Parsed rrc: {request.RollingResistanceCoefficient}");
+                            Console.WriteLine($"Parsed wrc: {request.WindResistanceCoefficient}");
+
+                            if (request == null)
+                            {
+                                await RespondJSON("{\"success\":false,\"error\":\"Invalid request\"}", resp, 400);
+                                continue;
+                            }
+
+                            FitnessMachineControlResponse response = 
+                                await conn.ControlPoint.SetSimulationParametersAsync(request.WindSpeed, 
+                                                                                     request.Grade, 
+                                                                                     request.RollingResistanceCoefficient, 
+                                                                                     request.WindResistanceCoefficient);
+                            bool success = response.IsSuccess;
+                            int status = success ? 200 : 400;
+                            body = success ? "{\"success\":true}" : "{\"success\":false}";    // body of response
+                            await RespondJSON(body, resp, status);
+                        }
+                        catch (Exception e)
+                        {
+                            await RespondJSON("{\"success\":false,\"error\":\"Invalid target\"}", resp, 400);
+                        }
                     }
                     else if ((req.HttpMethod == "PUT") && (req.Url.AbsolutePath == "/set_wheel_circumference"))
                     {
