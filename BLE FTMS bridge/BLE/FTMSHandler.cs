@@ -1,4 +1,5 @@
-﻿using BLE_FTMS_bridge.Trainer;
+﻿using BLE_FTMS_bridge.BLE.Enum;
+using BLE_FTMS_bridge.Trainer;
 using BLETestApp.BLE;
 using System;
 using System.Collections.Generic;
@@ -38,6 +39,11 @@ namespace BLE_FTMS_bridge.BLE
             var reader = DataReader.FromBuffer(args.CharacteristicValue);
             byte[] data = new byte[args.CharacteristicValue.Length];
             reader.ReadBytes(data);
+
+            Console.WriteLine($"Fitness Machine Status: {BitConverter.ToString(data)}");
+
+            HandleSpinDownStatus(data);
+
             parser.ParseFitnessMachineStatus(data, trainer.trainerStatus, trainer.trainerConfiguration);
         }
 
@@ -209,6 +215,34 @@ namespace BLE_FTMS_bridge.BLE
             parser.ParseSupportedPowerRange(data, trainer.trainerCapabilities);
 
             return true;
+        }
+
+
+        private void HandleSpinDownStatus(byte[] data)
+        {
+            if (data.Length < 2 || data[0] != 0x14)
+                return;
+
+            Console.WriteLine($"Spin-down notification: {BitConverter.ToString(data)}");
+
+            switch (data[1])
+            {
+                case 0x01:
+                    trainer.trainerStatus.SpinDownStatus = SpinDownStatus.Requested;
+                    break;
+
+                case 0x02:
+                    trainer.trainerStatus.SpinDownStatus = SpinDownStatus.Success;
+                    break;
+
+                case 0x03:
+                    trainer.trainerStatus.SpinDownStatus = SpinDownStatus.Error;
+                    break;
+
+                case 0x04:
+                    trainer.trainerStatus.SpinDownStatus = SpinDownStatus.StopPedaling;
+                    break;
+            }
         }
     }
 }

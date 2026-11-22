@@ -60,8 +60,6 @@ namespace BLE_FTMS_bridge.Trainer
             TargetInclination = null;
             TargetResistance = null;
             TargetPowerWatts = null;
-            TargetHeartRate = null;
-            TargetCadenceRpm = null;
             WindSpeed = null;
             Grade = null;
             RollingResistanceCoefficient = null;

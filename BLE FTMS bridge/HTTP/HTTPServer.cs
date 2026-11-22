@@ -1,4 +1,5 @@
 ﻿using BLE_FTMS_bridge.BLE;
+using BLE_FTMS_bridge.BLE.Enum;
 using BLE_FTMS_bridge.HTTP.API_Requests;
 using BLE_FTMS_bridge.Trainer;
 using BLETestApp.BLE;
@@ -82,7 +83,13 @@ namespace BLE_FTMS_bridge.HTTP
                     // Request for trainer status
                     else if ((req.HttpMethod == "GET") && (req.Url.AbsolutePath == "/trainer_status"))
                     {
-                        var status = new {trainer.trainerStatus.IsRunning, trainer.trainerStatus.IsPaused};
+                        var status = new {trainer.trainerStatus.IsRunning,
+                                          trainer.trainerStatus.IsPaused,
+                                          trainer.trainerStatus.SpinDownStatus,
+                                          trainer.trainerStatus.SpinDownTargetSpeedLowKph,
+                                          trainer.trainerStatus.SpinDownTargetSpeedHighKph,
+                                          trainer.trainerStatus.SpinDownResult};
+
                         string json = JsonSerializer.Serialize(status);
                         await RespondJSON(json, resp);
                     }
@@ -354,11 +361,63 @@ namespace BLE_FTMS_bridge.HTTP
                     }
                     else if ((req.HttpMethod == "PUT") && (req.Url.AbsolutePath == "/set_wheel_circumference"))
                     {
+                        if (!trainer.trainerCapabilities.SupportsWheelCircumference)
+                        {
+                            await RespondJSON("{\"success\":false,\"error\":\"Device doesn't wheel circumference\"}", resp, 422);
+                            continue;
+                        }
 
+                        using StreamReader reader = new StreamReader(req.InputStream);
+                        string body = await reader.ReadToEndAsync();                        // received body
+
+                        try
+                        {
+                            SetWheelCircumferenceRequest? request = JsonSerializer.Deserialize<SetWheelCircumferenceRequest>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                            Console.WriteLine($"Received JSON: {body}");
+                            Console.WriteLine($"Parsed wind: {request.WheelCircumference}");
+
+                            if (request == null)
+                            {
+                                await RespondJSON("{\"success\":false,\"error\":\"Invalid request\"}", resp, 400);
+                                continue;
+                            }
+
+                            FitnessMachineControlResponse response = await conn.ControlPoint.SetWheelCircumferenceAsync(request.WheelCircumference);
+                            bool success = response.IsSuccess;
+                            int status = success ? 200 : 400;
+                            body = success ? "{\"success\":true}" : "{\"success\":false}";    // body of response
+                            await RespondJSON(body, resp, status);
+                        }
+                        catch (Exception e)
+                        {
+                            await RespondJSON("{\"success\":false,\"error\":\"Invalid target\"}", resp, 400);
+                        }
                     }
-                    else if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/spin_down"))
+                    else if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/start_spindown"))
                     {
+                        if (!trainer.trainerCapabilities.SupportsSpinDown)
+                        {
+                            await RespondJSON("{\"success\":false,\"error\":\"Device doesn't support spin-down\"}", resp, 422);
+                            continue;
+                        }
 
+                        // Reset previous spin-down status
+                        trainer.trainerStatus.SpinDownStatus = SpinDownStatus.NotStarted;
+                        trainer.trainerStatus.SpinDownTargetSpeedLowKph = null;
+                        trainer.trainerStatus.SpinDownTargetSpeedHighKph = null;
+                        trainer.trainerStatus.SpinDownResult = null;
+
+                        FitnessMachineControlResponse response = await conn.ControlPoint.StartSpinDownAsync();
+
+                        bool success = response.IsSuccess;
+                        int status = success ? 200 : 400;
+
+                        string body = success
+                            ? "{\"success\":true,\"message\":\"Spin-down procedure started\"}"
+                            : "{\"success\":false,\"error\":\"Failed to start spin-down procedure\"}";
+
+                        await RespondJSON(body, resp, status);
                     }
                     else
                     {

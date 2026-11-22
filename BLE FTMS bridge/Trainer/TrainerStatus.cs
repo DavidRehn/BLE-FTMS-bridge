@@ -17,5 +17,13 @@ namespace BLE_FTMS_bridge.Trainer
         // Trainer operating state
         public bool? IsRunning { get; set; }
         public bool? IsPaused { get; set; }
+
+        // Spin-down
+        public SpinDownStatus SpinDownStatus { get; set; } = SpinDownStatus.NotStarted;
+
+        public double? SpinDownTargetSpeedLowKph { get; set; }
+        public double? SpinDownTargetSpeedHighKph { get; set; }
+
+        public double? SpinDownResult { get; set; }
     }
 }

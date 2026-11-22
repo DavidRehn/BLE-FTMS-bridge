@@ -52,6 +52,18 @@ namespace BLE_FTMS_bridge.BLE
                     ResponseParameters = data.Skip(3).ToArray()
                 };
 
+                // Parse spin-down target speed range
+                if (requestOpcode == 0x13 &&
+                    response.IsSuccess &&
+                    response.ResponseParameters.Length >= 4)
+                {
+                    ushort minSpeed = BitConverter.ToUInt16(response.ResponseParameters, 0);
+                    ushort maxSpeed = BitConverter.ToUInt16(response.ResponseParameters, 2);
+
+                    response.SpinDownTargetSpeedLowKph = minSpeed / 100.0;
+                    response.SpinDownTargetSpeedHighKph = maxSpeed / 100.0;
+                }
+
                 // Ignore responses that don't match the pending request.
                 if (pendingResponse == null || pendingOpcode != requestOpcode)
                     return;
@@ -247,12 +259,6 @@ namespace BLE_FTMS_bridge.BLE
 
             FitnessMachineControlResponse response = await ExecuteCommandAsync(command);
 
-            Console.WriteLine($"Requested wind speed: {windSpeed}");
-            Console.WriteLine($"Requested grade: {grade}");
-            Console.WriteLine($"Requested rolling resistance: {rollingResistanceCoefficient}");
-            Console.WriteLine($"Requested wind resistance: {windResistanceCoefficient}");
-            Console.WriteLine($"Command: {BitConverter.ToString(command)}");
-
             if (response.IsSuccess)
             {
                 trainer.trainerConfiguration.WindSpeed = windSpeed;
@@ -260,6 +266,50 @@ namespace BLE_FTMS_bridge.BLE
                 trainer.trainerConfiguration.RollingResistanceCoefficient = rollingResistanceCoefficient;
                 trainer.trainerConfiguration.WindResistanceCoefficient = windResistanceCoefficient;
                 trainer.trainerConfiguration.ControlMode = TargetMode.Simulation;
+            }
+
+            return response;
+        }
+
+
+        public async Task<FitnessMachineControlResponse> SetWheelCircumferenceAsync(double circumferenceMm)
+        {
+            ushort rawValue = checked((ushort)Math.Round(circumferenceMm * 10.0));
+            byte[] parameters = BitConverter.GetBytes(rawValue);
+            byte[] command = { 0x12, parameters[0], parameters[1] };
+
+            FitnessMachineControlResponse response = await ExecuteCommandAsync(command);
+
+            if (response.IsSuccess)
+            {
+                trainer.trainerConfiguration.WheelCircumferenceMm = circumferenceMm;
+            }
+
+            return response;
+        }
+
+        // ------------------- Spin down ---------------------
+
+        public async Task<FitnessMachineControlResponse> StartSpinDownAsync()
+        {
+            byte[] command = { 0x13, 0x01 };
+
+            Console.WriteLine("Starting spin-down procedure...");
+            Console.WriteLine($"Command: {BitConverter.ToString(command)}");
+
+            FitnessMachineControlResponse response = await ExecuteCommandAsync(command);
+
+            if (response.IsSuccess)
+            {
+                trainer.trainerStatus.SpinDownTargetSpeedLowKph =
+                    response.SpinDownTargetSpeedLowKph;
+
+                trainer.trainerStatus.SpinDownTargetSpeedHighKph =
+                    response.SpinDownTargetSpeedHighKph;
+
+                Console.WriteLine("Spin-down procedure started successfully.");
+                Console.WriteLine($"Minimum speed: {response.SpinDownTargetSpeedLowKph} km/h");
+                Console.WriteLine($"Maximum speed: {response.SpinDownTargetSpeedHighKph} km/h");
             }
 
             return response;

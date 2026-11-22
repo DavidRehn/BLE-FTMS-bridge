@@ -13,6 +13,10 @@ namespace BLE_FTMS_bridge.BLE
         public FitnessMachineControlResult ResultCode { get; set; }
         public byte[] ResponseParameters { get; set; } = Array.Empty<byte>();
         public bool IsSuccess => ResultCode == FitnessMachineControlResult.Success;
+
+        // For spin-down routine
+        public double? SpinDownTargetSpeedLowKph { get; set; }
+        public double? SpinDownTargetSpeedHighKph { get; set; }
     }
 
 }
